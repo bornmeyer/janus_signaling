@@ -1,6 +1,6 @@
-defmodule General.StreamSupervisor do
+defmodule Janus.StreamSupervisor do
     use DynamicSupervisor
-    alias General.Stream
+    alias Janus.Stream
     require Logger
 
     def start_link(_args) do
@@ -12,7 +12,7 @@ defmodule General.StreamSupervisor do
     end
 
     def start_child(stream_id, participant_id, room_id) do
-        child_spec = General.Stream.child_spec(stream_id, participant_id, room_id)
+        child_spec = Janus.Stream.child_spec(stream_id, participant_id, room_id)
         {:ok, pid} = DynamicSupervisor.start_child(__MODULE__, child_spec)
         pid
     end

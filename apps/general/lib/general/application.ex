@@ -7,13 +7,20 @@ defmodule General.Application do
   require Logger
 
   def start(_type, _args) do
-    ip = Application.get_env(:general, :ip) || "192.168.178.33"
-    port = Application.get_env(:general, :port) || 8188
-    Logger.info("ws://#{ip}:#{port}")
+    
     children = [
-      #General.JanusSocket.child_spec("ws://#{ip}:#{port}"),
-      General.Dispatcher.child_spec("ws://#{ip}:#{port}"),
-      General.ClientSideSupervisor.child_spec(ip, port)
+      Plug.Cowboy.child_spec(
+        scheme: :http,
+        plug: General.Router,
+        options: [
+          dispatch: dispatch(),
+          port: 4000
+        ]
+      ),
+      Registry.child_spec(
+        keys: :duplicate,
+        name: Registry.General
+      )
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
@@ -22,7 +29,15 @@ defmodule General.Application do
     Supervisor.start_link(children, opts)
   end
 
- 
+  defp dispatch do
+    [
+      {:_,
+        [
+          {:_, General.SocketHandler, []},
+          #{:_, Plug.Cowboy.Handler, {General.Router, []}}
+        ]
+      }
+    ]
+  end
 
- 
 end

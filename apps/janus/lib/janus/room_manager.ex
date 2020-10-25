@@ -1,4 +1,4 @@
-defmodule General.RoomManager do
+defmodule Janus.RoomManager do
     use GenServer
     require Logger
 
@@ -23,7 +23,7 @@ defmodule General.RoomManager do
     def handle_call({:create, room_id, %{"list" => existing_rooms}} = list, _from, state) do       
         Enum.find(existing_rooms, fn x -> x["room"] == room_id end) |> inspect |> Logger.info 
         room = case Enum.find(existing_rooms, fn x -> x["room"] == room_id end) do
-            nil -> General.Dispatcher.send_message(General.Messages.create_room_message(room_id))
+            nil -> Janus.Dispatcher.send_message(Janus.Messages.create_room_message(room_id))
             found -> found
         end
         Logger.info("ROOM #{room |> inspect}")
@@ -31,12 +31,12 @@ defmodule General.RoomManager do
     end
 
     def handle_call({:list_rooms}, _from, state) do
-        rooms = General.Dispatcher.send_message(General.Messages.list_rooms_message)
+        rooms = Janus.Dispatcher.send_message(Janus.Messages.list_rooms_message)
         {:reply, rooms, state}
     end
 
     def handle_call({:join, room_id, participant_id}, _from, state) do
-        result = General.Dispatcher.send_message(General.Messages.join_room_message(room_id, participant_id))
+        result = Janus.Dispatcher.send_message(Janus.Messages.join_room_message(room_id, participant_id))
         {:reply, result, state}
     end
 

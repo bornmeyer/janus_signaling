@@ -1,6 +1,6 @@
-defmodule General.Dispatcher do
+defmodule Janus.Dispatcher do
     use GenServer
-    alias General.JanusSocket
+    alias Janus.Socket
     require Logger
 
     def child_spec(url) do
@@ -14,11 +14,7 @@ defmodule General.Dispatcher do
     end
 
     def start_link(url) do
-        children = [
-            General.JanusSocket.child_spec(url)
-        ]
-        {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one)
-        GenServer.start_link(__MODULE__, %{supervisor: pid, requests: %{}}, name: __MODULE__)
+        GenServer.start_link(__MODULE__, %{requests: %{}}, name: __MODULE__)
     end
 
     def init(state) do
@@ -29,14 +25,14 @@ defmodule General.Dispatcher do
         ref = make_ref()
 
         transaction_id = 
-        General.Utilities.generate_random_string() 
+        Janus.Utilities.generate_random_string() 
         #|> General.TransactionStore.add_transaction(sender)
 
         message = message 
         |> Map.put("transaction", transaction_id)
         |> put_value(state, :remote_session_id, :session_id)
         |> put_value(state, :handle_id, :handle_id)
-        message |> General.JanusSocket.send(self(), ref, transaction_id)
+        message |> Janus.Socket.send(self(), ref, transaction_id)
         requests = Map.put(requests, ref, from)
         state = Map.put(state, :requests, requests)
 
@@ -94,9 +90,9 @@ defmodule General.Dispatcher do
     end
 
     def handle_info({:keep_alive, session_id}, state) do
-        message = General.Messages.create_keep_alive_message(session_id) |> Map.put(:transaction, General.Utilities.generate_random_string())
-        General.JanusSocket.send_keepalive(message)
-        General.Dispatcher.queue_keep_alive(session_id)
+        message = Janus.Messages.create_keep_alive_message(session_id) |> Map.put(:transaction, Janus.Utilities.generate_random_string())
+        Janus.Socket.send_keepalive(message)
+        Janus.Dispatcher.queue_keep_alive(session_id)
         {:noreply, state}
     end
 

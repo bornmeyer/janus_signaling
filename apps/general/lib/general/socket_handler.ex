@@ -8,7 +8,7 @@ defmodule General.SocketHandler do
         Logger.info("params: #{params |> inspect}")
         participant_id = String.to_integer(params["participant_id"])
         room_id = String.to_integer(params["room_id"])
-        state = %{registry_key: pid, room_id: room_id, participant_id: participant_id}
+        state = %{registry_key: pid, room_id: room_id, participant_id: participant_id, backend: %CallProtocol.Janus{}}
         {:cowboy_websocket, request, state}
     end
 
@@ -21,7 +21,8 @@ defmodule General.SocketHandler do
 
     def websocket_handle({:text, json}, state) do
         payload = Poison.decode!(json)
-        {state, response} = payload |> General.CommandRouter.route(state)
+        protocol = CallProtocol.get_module(%CallProtocol.Janus{command: payload, state: state})
+        {state, response} = payload |> protocol.route(state)
         {:reply, {:text, response |> Poison.encode!}, state}
     end
 
@@ -38,7 +39,8 @@ defmodule General.SocketHandler do
    
     def terminate(reason, _req, state) do
         reason |> inspect |> Logger.info
-        General.Stream.destroy(state.stream_id)
+        protocol = CallProtocol.get_module(%CallProtocol.Janus{})
+        protocol.destroy(state)
         :ok
     end
     

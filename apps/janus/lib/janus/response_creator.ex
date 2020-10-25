@@ -1,4 +1,4 @@
-defmodule General.ResponseCreator do
+defmodule Janus.ResponseCreator do
     
     def create_response(%{"command" => "publish"}, stream_id, args \\ []) do
         %{

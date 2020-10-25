@@ -1,4 +1,4 @@
-defmodule General.TransactionStore do
+defmodule Janus.TransactionStore do
     use Agent
 
     def start_link(_) do

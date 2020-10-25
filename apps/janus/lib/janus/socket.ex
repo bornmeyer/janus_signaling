@@ -1,4 +1,4 @@
-defmodule General.JanusSocket do
+defmodule Janus.Socket do
     use WebSockex
     require Logger
 
@@ -23,7 +23,7 @@ defmodule General.JanusSocket do
             {"Sec-WebSocket-Protocol", "janus-protocol",}
         ]
         WebSockex.start_link(url, __MODULE__, state, 
-            extra_headers: extra_headers, name: __MODULE__, handle_initial_conn_failure: true, debug: [:trace])
+            extra_headers: extra_headers, name: __MODULE__, handle_initial_conn_failure: true)#, debug: [:trace])
     end
 
     def handle_connect(conn, state) do

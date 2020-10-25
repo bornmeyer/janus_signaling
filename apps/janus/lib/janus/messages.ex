@@ -1,4 +1,4 @@
-defmodule General.Messages do
+defmodule Janus.Messages do
     def create_session_message do
         %{
             janus: "create"
