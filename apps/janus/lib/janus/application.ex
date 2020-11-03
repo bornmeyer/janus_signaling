@@ -17,6 +17,7 @@ defmodule Janus.Application do
         Janus.StreamSupervisor, []
       },
       Janus.StreamManager,
+      Janus.PluginManager,
       Janus.RoomManager.child_spec(),
       {
         Registry, [keys: :unique, name: :stream_registry]

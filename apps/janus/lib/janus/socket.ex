@@ -14,7 +14,7 @@ defmodule Janus.Socket do
     end
 
     def start_link(url) do
-        Logger.info("starting socket for #{url}") 
+        Logger.info("starting socket for #{url}")
         state = %{
             requests: %{},
             transaction_ids: []
@@ -22,7 +22,7 @@ defmodule Janus.Socket do
         extra_headers = [
             {"Sec-WebSocket-Protocol", "janus-protocol",}
         ]
-        WebSockex.start_link(url, __MODULE__, state, 
+        WebSockex.start_link(url, __MODULE__, state,
             extra_headers: extra_headers, name: __MODULE__, handle_initial_conn_failure: true)#, debug: [:trace])
     end
 
@@ -35,22 +35,27 @@ defmodule Janus.Socket do
         requests = Map.put(requests, transaction_id, {:request, sender, ref})
         state = state
         |> Map.put(:requests, requests)
-        |> Map.put(:transaction_ids, [transaction_id | transaction_ids])     
+        |> Map.put(:transaction_ids, [transaction_id | transaction_ids])
         {:reply, {:text, json}, state}
     end
 
     def handle_frame({:text, message}, state) do
         message = message
         |> Poison.decode!
-        #|> General.Dispatcher.process_response
         handle_response(message, state)
     end
 
     def handle_response(%{"janus" => "ack"} = message, state) do
         {:ok, state}
     end
-    
+
+    def handle_response(%{"janus" => "event", "plugindata" => %{"plugin" => "janus.videoroom.plugin", "data" => %{"videoroom" => "joined"}}} = message, state) do
+        Janus.EventRouter.handle_event(message)
+        {:ok, state}
+    end
+
     def handle_response(%{"janus" => "webrtcup"} = message, state) do
+        Janus.EventRouter.handle_event(message)
         {:ok, state}
     end
 
@@ -68,15 +73,21 @@ defmodule Janus.Socket do
         {:ok, state}
     end
 
-
-    def handle_response(message, state) do 
+    def handle_response(message, state) do
         transaction_id = message["transaction"]
+        case transaction_id do
+            nil -> message |> inspect |> Logger.info
+            _ -> process_response(message, transaction_id, state)
+        end
+        {:ok, state}
+    end
+
+    defp process_response(message, transaction_id, state) do
         requests = state.requests
         {{command, sender, ref}, requests} = Map.pop(requests, transaction_id)
         state = Map.put(state, :requests, requests)
 
         GenServer.cast(sender, {:response, ref, message})
-        {:ok, state}
     end
 
     def handle_disconnect(%{reason: {:local, reason}}, state) do
@@ -85,7 +96,6 @@ defmodule Janus.Socket do
     end
 
     def terminate(reason, _req, _state) do
-        Logger.info(reason)
         :normal
     end
 

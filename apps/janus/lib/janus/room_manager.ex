@@ -20,37 +20,35 @@ defmodule Janus.RoomManager do
         {:ok, []}
     end
 
-    def handle_call({:create, room_id, %{"list" => existing_rooms}} = list, _from, state) do       
-        Enum.find(existing_rooms, fn x -> x["room"] == room_id end) |> inspect |> Logger.info 
+    def handle_call({:create, room_id, %{"list" => existing_rooms}, handle_id}, _from, state) do
         room = case Enum.find(existing_rooms, fn x -> x["room"] == room_id end) do
-            nil -> Janus.Dispatcher.send_message(Janus.Messages.create_room_message(room_id))
+            nil -> Janus.Dispatcher.send_message(Janus.Messages.create_room_message(room_id, handle_id))
             found -> found
         end
-        Logger.info("ROOM #{room |> inspect}")
         {:reply, room["room"], state}
     end
 
-    def handle_call({:list_rooms}, _from, state) do
-        rooms = Janus.Dispatcher.send_message(Janus.Messages.list_rooms_message)
+    def handle_call({:list_rooms, handle_id}, _from, state) do
+        rooms = Janus.Dispatcher.send_message(Janus.Messages.list_rooms_message(handle_id))
         {:reply, rooms, state}
     end
 
-    def handle_call({:join, room_id, participant_id}, _from, state) do
-        result = Janus.Dispatcher.send_message(Janus.Messages.join_room_message(room_id, participant_id))
+    def handle_call({:join, room_id, participant_id, handle_id}, _from, state) do
+        result = Janus.Dispatcher.send_message(Janus.Messages.join_room_message(room_id, participant_id, handle_id))
         {:reply, result, state}
     end
 
-    def create_room(room_id, existing_rooms) do
-        GenServer.call(__MODULE__, {:create, room_id, existing_rooms})
+    def create_room(room_id, existing_rooms, handle_id) do
+        GenServer.call(__MODULE__, {:create, room_id, existing_rooms, handle_id})
     end
 
-    def list_rooms do
-        GenServer.call(__MODULE__, {:list_rooms})
+    def list_rooms(handle_id) do
+        GenServer.call(__MODULE__, {:list_rooms, handle_id})
     end
 
-    def join_room(room_id, participant_id) do
-        GenServer.call(__MODULE__, {:join, room_id, participant_id})
+    def join_room(room_id, participant_id, handle_id) do
+        GenServer.call(__MODULE__, {:join, room_id, participant_id, handle_id})
     end
 
-    
+
 end

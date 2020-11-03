@@ -24,19 +24,26 @@ defmodule Janus.Dispatcher do
     def handle_call({:send, message}, from, %{requests: requests} = state) do
         ref = make_ref()
 
-        transaction_id = 
-        Janus.Utilities.generate_random_string() 
-        #|> General.TransactionStore.add_transaction(sender)
+        transaction_id =
+        Janus.Utilities.generate_random_string()
 
-        message = message 
+        message
         |> Map.put("transaction", transaction_id)
         |> put_value(state, :remote_session_id, :session_id)
-        |> put_value(state, :handle_id, :handle_id)
-        message |> Janus.Socket.send(self(), ref, transaction_id)
+        |> Janus.Socket.send(self(), ref, transaction_id)
         requests = Map.put(requests, ref, from)
         state = Map.put(state, :requests, requests)
 
         {:noreply, state}
+    end
+
+    def handle_call({:set_data, key, value}, _from, state) do
+        state = Map.put(state, key, value)
+        {:reply, {:ok, key, value}, state}
+    end
+
+    def handle_call({:get_data, key}, _from, state) do
+        {:reply, state[key], state}
     end
 
     defp put_value(map = %{}, state, key, target_key) do
@@ -51,16 +58,13 @@ defmodule Janus.Dispatcher do
     end
 
     def handle_cast({:response, ref, %{"janus" => "success", "plugindata" => %{"data" => data}} = response}, %{requests: requests} = state) do
-        Logger.info(1)
         {from, requests} = Map.pop(requests, ref)
         GenServer.reply(from, data)
         state = Map.put(state, :requests, requests)
         {:noreply, state}
     end
 
-
     def handle_cast({:response, ref, %{"janus" => "event", "plugindata" => %{"data" => data}, "jsep" => jsep} = response}, %{requests: requests} = state) do
-        Logger.info(4)
         {from, requests} = Map.pop(requests, ref)
         GenServer.reply(from, %{data: data, jsep: jsep})
         state = Map.put(state, :requests, requests)
@@ -68,26 +72,26 @@ defmodule Janus.Dispatcher do
     end
 
     def handle_cast({:response, ref, %{"janus" => "event", "plugindata" => %{"data" => data}} = response}, %{requests: requests} = state) do
-        Logger.info(2)
         {from, requests} = Map.pop(requests, ref)
         GenServer.reply(from, data)
         state = Map.put(state, :requests, requests)
         {:noreply, state}
     end
 
+    def handle_cast({:response, ref, %{"janus" => "error", "error" => %{"code" => code, "reason" => reason}} = response}, %{requests: requests} = state) do
+        "Error #{code}: #{reason}" |> Logger.info
+        {:noreply, state}
+    end
+
 
     def handle_cast({:response, ref, response}, %{requests: requests} = state) do
-        Logger.info(3)
         {from, requests} = Map.pop(requests, ref)
         GenServer.reply(from, response)
         state = Map.put(state, :requests, requests)
         {:noreply, state}
     end
 
-    def handle_call({:set_data, key, value}, _from, state) do
-        state = Map.put(state, key, value)
-        {:reply, {:ok, key, value}, state}
-    end
+
 
     def handle_info({:keep_alive, session_id}, state) do
         message = Janus.Messages.create_keep_alive_message(session_id) |> Map.put(:transaction, Janus.Utilities.generate_random_string())
@@ -110,5 +114,9 @@ defmodule Janus.Dispatcher do
 
     def set_data(key, value) do
         GenServer.call(__MODULE__, {:set_data, key, value})
+    end
+
+    def get_data(key) do
+        GenServer.call(__MODULE__, {:get_data, key})
     end
 end
