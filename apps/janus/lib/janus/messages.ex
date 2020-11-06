@@ -103,13 +103,14 @@ defmodule Janus.Messages do
         }
     end
 
+
     @spec start_message(any, any, any) :: %{
-            body: %{audio: true, data: true, request: <<_::56>>, video: true},
+            body: %{request: <<_::40>>},
             handle_id: any,
             janus: <<_::56>>,
-            jsep: %{sdp: any, trickle: true, type: any}
+            jsep: %{sdp: any, trickle: true, type: <<_::48>>}
           }
-    def start_message(sdp, sdp_type, handle_id) do
+    def start_message(sdp, _sdp_type, handle_id) do
         %{
             janus: "message",
             body: %{
@@ -124,5 +125,14 @@ defmodule Janus.Messages do
         }
     end
 
-
+    def trickle_message(sdp_mid, sdp_mline_index, candidate) do
+        %{
+            janus: "trickle",
+            candidate: %{
+                sdpMid: sdp_mid,
+                sdpMLineIndex: sdp_mline_index,
+                candidate: candidate
+            }
+        }
+    end
 end

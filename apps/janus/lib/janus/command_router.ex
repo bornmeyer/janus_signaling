@@ -19,7 +19,7 @@ defmodule Janus.CommandRouter do
         {state, Janus.ResponseCreator.create_response(command, id)}
     end
 
-    def route(%{"command" => "takeConfiguration", "sdp" => sdp, "streamId" => stream_id, "type" => "offer"} = command, state, web_socket) do
+    def route(%{"command" => "takeConfiguration", "sdp" => sdp, "streamId" => stream_id, "type" => "offer"} = command, state, _web_socket) do
         "takeConfiguration: offer" |> Logger.info
         {:ok, sdp, type, room_id} = Janus.Stream.create_answer(stream_id, sdp)
         plugin = Janus.PluginManager.get_plugin(state.participant_id)
@@ -30,13 +30,14 @@ defmodule Janus.CommandRouter do
         {state, response}
     end
 
-    def route(%{"command" => "takeConfiguration", "sdp" => sdp, "streamId" => stream_id, "type" => "answer"} = command, state, web_socket) do
+    def route(%{"command" => "takeConfiguration", "sdp" => sdp, "streamId" => stream_id, "type" => "answer"}, state, _web_socket) do
         state |> inspect |> Logger.info
         Janus.Stream.set_remote_description(stream_id, sdp, "answer", state.participant)
         {state, Janus.Notifications.play_started(state.participant.id)}
     end
 
-    def route(%{"command" => "takeCandidate"} = command, state, web_socket) do
+    def route(%{"command" => "takeCandidate", "streamdId" => stream_id, "sdpMLineIndex" => sdpMLineIndex,
+     "sdpMid" => sdpMid, "candidate" => candidate} = command, _state, _web_socket) do
         command |> inspect |> Logger.info
     end
 
@@ -52,15 +53,15 @@ defmodule Janus.CommandRouter do
         {state, Janus.ResponseCreator.create_response(command, stream_id, sdp: sdp, type: type)}
     end
 
-    def route(%{"command" => "stop"} = command, state, web_socket) do
+    def route(%{"command" => "stop"} = command, _state, _web_socket) do
         command |> inspect |> Logger.info
     end
 
-    def route(%{"command" => "getParticipants"} = command, state, web_socket) do
+    def route(%{"command" => "getParticipants"} = command, _state, _web_socket) do
         command |> inspect |> Logger.info
     end
 
-    def route(command, state, web_socket) do
+    def route(command, _state, _web_socket) do
         command |> inspect |> Logger.info
     end
 

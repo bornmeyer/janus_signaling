@@ -1,7 +1,7 @@
 defmodule Janus.EventRouter do
   require Logger
 
-  def handle_event(%{"janus" => "webrtcup", "sender" => sender, "session_id" => session_id} = message) do
+  def handle_event(%{"janus" => "webrtcup", "sender" => sender, "session_id" => _session_id}) do
     {_, relevant_stream, _, _} =
       DynamicSupervisor.which_children(Janus.StreamSupervisor)
       |> Enum.find(nil, fn {_, x, _, _} -> Janus.Stream.get_handle_id(x) == sender end)

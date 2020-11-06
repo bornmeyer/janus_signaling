@@ -85,6 +85,11 @@ defmodule Janus.Stream do
         {:reply, {:ok, state.playing_streams |> Map.get(play_id)}, state}
     end
 
+    def handle_call({:add_candidate, sdp_mline_index, sdp_mid, candidate}, _from, state) do
+        Janus.Dispatcher.send_message(Janus.Messages.trickle_message(sdp_mid, sdp_mline_index, candidate))
+        {:reply, :ok, state}
+    end
+
     defp via_tuple(id) do
         {:via, Registry, {:stream_registry, id}}
     end
@@ -159,5 +164,9 @@ defmodule Janus.Stream do
 
     def publisher?(stream) when is_pid(stream) do
         GenServer.call(stream, {:is, :publisher})
+    end
+
+    def add_candidate(id, sdp_mline_index, sdp_mid, candidate) do
+        GenServer.call(via_tuple(id), {:add_candidate, sdp_mline_index, sdp_mid, candidate})
     end
 end

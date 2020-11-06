@@ -13,7 +13,7 @@ defmodule Janus.Dispatcher do
         }
     end
 
-    def start_link(url) do
+    def start_link(_url) do
         GenServer.start_link(__MODULE__, %{requests: %{}}, name: __MODULE__)
     end
 
@@ -53,32 +53,32 @@ defmodule Janus.Dispatcher do
         end
     end
 
-    def handle_cast({:response, ref, %{"janus" => "ack"}}, state) do
+    def handle_cast({:response, _ref, %{"janus" => "ack"}}, state) do
         {:noreply, state}
     end
 
-    def handle_cast({:response, ref, %{"janus" => "success", "plugindata" => %{"data" => data}} = response}, %{requests: requests} = state) do
+    def handle_cast({:response, ref, %{"janus" => "success", "plugindata" => %{"data" => data}}}, %{requests: requests} = state) do
         {from, requests} = Map.pop(requests, ref)
         GenServer.reply(from, data)
         state = Map.put(state, :requests, requests)
         {:noreply, state}
     end
 
-    def handle_cast({:response, ref, %{"janus" => "event", "plugindata" => %{"data" => data}, "jsep" => jsep} = response}, %{requests: requests} = state) do
+    def handle_cast({:response, ref, %{"janus" => "event", "plugindata" => %{"data" => data}, "jsep" => jsep}}, %{requests: requests} = state) do
         {from, requests} = Map.pop(requests, ref)
         GenServer.reply(from, %{data: data, jsep: jsep})
         state = Map.put(state, :requests, requests)
         {:noreply, state}
     end
 
-    def handle_cast({:response, ref, %{"janus" => "event", "plugindata" => %{"data" => data}} = response}, %{requests: requests} = state) do
+    def handle_cast({:response, ref, %{"janus" => "event", "plugindata" => %{"data" => data}}}, %{requests: requests} = state) do
         {from, requests} = Map.pop(requests, ref)
         GenServer.reply(from, data)
         state = Map.put(state, :requests, requests)
         {:noreply, state}
     end
 
-    def handle_cast({:response, ref, %{"janus" => "error", "error" => %{"code" => code, "reason" => reason}} = response}, %{requests: requests} = state) do
+    def handle_cast({:response, _ref, %{"janus" => "error", "error" => %{"code" => code, "reason" => reason}}}, %{requests: _requests} = state) do
         "Error #{code}: #{reason}" |> Logger.info
         {:noreply, state}
     end

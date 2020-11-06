@@ -45,7 +45,7 @@ defmodule Janus.Socket do
         handle_response(message, state)
     end
 
-    def handle_response(%{"janus" => "ack"} = message, state) do
+    def handle_response(%{"janus" => "ack"}, state) do
         {:ok, state}
     end
 
@@ -59,7 +59,7 @@ defmodule Janus.Socket do
         {:ok, state}
     end
 
-    def handle_response(%{"janus" => "media"} = message, state) do
+    def handle_response(%{"janus" => "media"}, state) do
         {:ok, state}
     end
 
@@ -75,7 +75,7 @@ defmodule Janus.Socket do
 
     def handle_response(message, state) do
         transaction_id = message["transaction"]
-        case transaction_id do
+        state =case transaction_id do
             nil -> message |> inspect |> Logger.info
             _ -> process_response(message, transaction_id, state)
         end
@@ -84,10 +84,11 @@ defmodule Janus.Socket do
 
     defp process_response(message, transaction_id, state) do
         requests = state.requests
-        {{command, sender, ref}, requests} = Map.pop(requests, transaction_id)
+        {{_command, sender, ref}, requests} = Map.pop(requests, transaction_id)
         state = Map.put(state, :requests, requests)
 
         GenServer.cast(sender, {:response, ref, message})
+        state
     end
 
     def handle_disconnect(%{reason: {:local, reason}}, state) do
@@ -95,7 +96,7 @@ defmodule Janus.Socket do
         {:error, state}
     end
 
-    def terminate(reason, _req, _state) do
+    def terminate(_reason, _req, _state) do
         :normal
     end
 
