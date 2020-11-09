@@ -5,10 +5,10 @@ defmodule Janus.PluginManager do
     Agent.start_link(fn -> %{} end, name: __MODULE__)
   end
 
-  def new(participant_id, room_id) do
+  def new(participant_id, room_id, type \\ :publisher) do
     session_id = Janus.Dispatcher.get_data(:remote_session_id)
     %{"data" => %{"id" => handle_id}, "janus" => "success"} = Janus.Dispatcher.send_message(Janus.Messages.create_attach_message(session_id))
-    plugin = %Janus.Plugin{handle_id: handle_id, session_id: session_id, participant_id: participant_id, room_id: room_id}
+    plugin = %Janus.Plugin{handle_id: handle_id, session_id: session_id, participant_id: participant_id, room_id: room_id, type: type}
     Agent.update(__MODULE__, fn map -> map |> Map.put(participant_id, plugin) end)
     {:ok, plugin}
   end

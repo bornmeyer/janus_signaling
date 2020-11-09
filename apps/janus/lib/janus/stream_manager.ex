@@ -13,7 +13,6 @@ defmodule Janus.StreamManager do
             contents -> contents
         end
         Agent.update(__MODULE__, fn map -> Map.put(map, participant_id, [stream | list]) end)
-        #Janus.StreamManager.broadcast_join(participant_id)
     end
 
     def get_streams_for(participant_id) do

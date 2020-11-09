@@ -4,7 +4,7 @@ defmodule Janus.CommandRouter do
     def route(%{"command" => "publish"} = command, state, web_socket) do
         id = UUID.uuid4()
         {:ok, plugin} = Janus.PluginManager.new(state.participant_id, state.room_id)
-        stream = Janus.StreamSupervisor.start_child(id, state.participant_id, state.room_id, web_socket, plugin.handle_id, :publisher)
+        stream = Janus.StreamSupervisor.start_child(id, state.participant_id, state.room_id, web_socket, plugin.handle_id)
         Janus.StreamManager.add_stream(state.participant_id, stream)
 
         {:ok, plugin} = Janus.PluginManager.add_stream(state.participant_id, stream)
@@ -12,6 +12,7 @@ defmodule Janus.CommandRouter do
 
         state = Map.put(state, :stream_ids, [id]) |> Map.put(:participant, participant)
         participant_ids = Janus.StreamManager.get_all_participants_for_room(state.room_id, state.participant_id)
+        "takeParticipants for =>  #{participant_ids |> inspect}" |> Logger.info
         if length(participant_ids) > 0 do
             General.SocketHandler.push(web_socket, %{command: "participants", participants: participant_ids})
         end
@@ -43,11 +44,12 @@ defmodule Janus.CommandRouter do
 
     def route(%{"command" => "play", "streamId" => stream_id} = command, state, web_socket) do
         id = UUID.uuid4()
-        {:ok, plugin} = Janus.PluginManager.new(state.participant_id, state.room_id)
+        {:ok, plugin} = Janus.PluginManager.new(state.participant_id, state.room_id, :subscriber)
         participant = %{state.participant | subscribing_plugin: plugin }
 
         stream = Janus.StreamSupervisor.start_child(id, participant.id, plugin.room_id, web_socket, plugin.handle_id, :subscriber)
         Janus.StreamManager.add_stream(state.participant_id, stream)
+        Janus.PluginManager.add_stream(state.participant_id, stream)
         state = Map.put(state, :stream_ids, [id | state.stream_ids]) |> Map.put(:participant, participant)
         {type, sdp} = Janus.Stream.create_offer(id, plugin)
         {state, Janus.ResponseCreator.create_response(command, stream_id, sdp: sdp, type: type)}

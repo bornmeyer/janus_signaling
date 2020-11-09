@@ -23,7 +23,7 @@ defmodule Janus.Socket do
             {"Sec-WebSocket-Protocol", "janus-protocol",}
         ]
         WebSockex.start_link(url, __MODULE__, state,
-            extra_headers: extra_headers, name: __MODULE__, handle_initial_conn_failure: true)#, debug: [:trace])
+            extra_headers: extra_headers, name: __MODULE__, handle_initial_conn_failure: true, debug: [:trace])
     end
 
     def handle_connect(conn, state) do
@@ -49,11 +49,6 @@ defmodule Janus.Socket do
         {:ok, state}
     end
 
-    def handle_response(%{"janus" => "event", "plugindata" => %{"plugin" => "janus.videoroom.plugin", "data" => %{"videoroom" => "joined"}}} = message, state) do
-        Janus.EventRouter.handle_event(message)
-        {:ok, state}
-    end
-
     def handle_response(%{"janus" => "webrtcup"} = message, state) do
         Janus.EventRouter.handle_event(message)
         {:ok, state}
@@ -76,13 +71,17 @@ defmodule Janus.Socket do
     def handle_response(message, state) do
         transaction_id = message["transaction"]
         state =case transaction_id do
-            nil -> message |> inspect |> Logger.info
+            nil -> state
             _ -> process_response(message, transaction_id, state)
         end
         {:ok, state}
     end
 
     defp process_response(message, transaction_id, state) do
+        "************************************************************" |> Logger.info
+        state |> inspect |> Logger.info
+        "************************************************************" |> Logger.info
+
         requests = state.requests
         {{_command, sender, ref}, requests} = Map.pop(requests, transaction_id)
         state = Map.put(state, :requests, requests)

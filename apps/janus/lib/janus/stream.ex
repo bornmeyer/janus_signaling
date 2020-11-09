@@ -24,7 +24,7 @@ defmodule Janus.Stream do
 
     def init(state) do
         "stream##{state.stream_id} started for #{state.participant_id} as #{state.type} in #{state.room_id}" |> Logger.info
-        {:ok, state}
+        {:ok, state, 50000}
     end
 
     def handle_call({:create_answer, id, sdp}, _from, state) do
@@ -68,6 +68,7 @@ defmodule Janus.Stream do
     end
 
     def handle_call({:get_data_via_key, key}, _from, state) do
+        Map.has_key?(state, key) |> Logger.info
         {:reply, state |> Map.fetch!(key), state}
     end
 

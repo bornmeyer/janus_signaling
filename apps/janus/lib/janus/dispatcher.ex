@@ -1,6 +1,5 @@
 defmodule Janus.Dispatcher do
     use GenServer
-    alias Janus.Socket
     require Logger
 
     def child_spec(url) do
