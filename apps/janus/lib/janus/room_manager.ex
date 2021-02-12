@@ -1,4 +1,5 @@
 defmodule Janus.RoomManager do
+    @behaviour Janus.RoomManagerBehaviour
     use GenServer
     require Logger
 
@@ -22,20 +23,19 @@ defmodule Janus.RoomManager do
 
     def handle_call({:create, room_id, %{"list" => existing_rooms}, handle_id}, _from, state) do
         room = case Enum.find(existing_rooms, fn x -> x["room"] == room_id end) do
-            nil -> Janus.Dispatcher.send_message(Janus.Messages.create_room_message(room_id, handle_id))
+            nil -> dispatcher().send_message(Janus.Messages.create_room_message(room_id, handle_id))
             found -> found
         end
         {:reply, room["room"], state}
     end
 
     def handle_call({:list_rooms, handle_id}, _from, state) do
-        rooms = Janus.Dispatcher.send_message(Janus.Messages.list_rooms_message(handle_id))
+        rooms = dispatcher().send_message(Janus.Messages.list_rooms_message(handle_id))
         {:reply, rooms, state}
     end
 
     def handle_call({:join, room_id, participant_id, handle_id}, _from, state) do
-        result = Janus.Dispatcher.send_message(Janus.Messages.join_room_message(room_id, participant_id, handle_id))
-        result |> inspect |> Logger.info
+        result = dispatcher().send_message(Janus.Messages.join_room_message(room_id, participant_id, handle_id))
         Janus.EventRouter.handle_event(result)
         {:reply, result, state}
     end
@@ -52,5 +52,5 @@ defmodule Janus.RoomManager do
         GenServer.call(__MODULE__, {:join, room_id, participant_id, handle_id})
     end
 
-
+    defp dispatcher, do: Application.fetch_env!(:janus, :dispatcher)
 end

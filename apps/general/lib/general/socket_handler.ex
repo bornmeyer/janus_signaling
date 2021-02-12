@@ -6,8 +6,8 @@ defmodule General.SocketHandler do
         Logger.info("init")
         params = query_params |> URI.decode_query
         Logger.info("params: #{params |> inspect}")
-        participant_id = String.to_integer(params["participant_id"])
-        room_id = String.to_integer(params["room_id"])
+        participant_id = params["participant_id"]
+        room_id = params["room_id"]
         state = %{registry_key: pid, room_id: room_id, participant_id: participant_id, backend: %CallProtocol.Janus{}}
         {:cowboy_websocket, request, state}
     end
@@ -16,6 +16,9 @@ defmodule General.SocketHandler do
         Logger.info("websocket_init")
         Registry.General
         |> Registry.register(state.registry_key, {})
+
+        protocol = CallProtocol.get_module(%CallProtocol.Janus{})
+        protocol.route(:after_connect, state, self())
         {:ok, state}
     end
 

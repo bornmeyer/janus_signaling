@@ -1,4 +1,5 @@
 defmodule Janus.Dispatcher do
+    @behaviour Janus.DispatcherBehaviour
     use GenServer
     require Logger
 
@@ -118,4 +119,6 @@ defmodule Janus.Dispatcher do
     def get_data(key) do
         GenServer.call(__MODULE__, {:get_data, key})
     end
+
+    def implementation, do: Application.fetch_env!(:janus, :dispatcher)
 end

@@ -23,7 +23,7 @@ defmodule Janus.Socket do
             {"Sec-WebSocket-Protocol", "janus-protocol",}
         ]
         WebSockex.start_link(url, __MODULE__, state,
-            extra_headers: extra_headers, name: __MODULE__, handle_initial_conn_failure: true, debug: [:trace])
+            extra_headers: extra_headers, name: __MODULE__, handle_initial_conn_failure: true)#, debug: [:trace])
     end
 
     def handle_connect(conn, state) do
@@ -78,10 +78,6 @@ defmodule Janus.Socket do
     end
 
     defp process_response(message, transaction_id, state) do
-        "************************************************************" |> Logger.info
-        state |> inspect |> Logger.info
-        "************************************************************" |> Logger.info
-
         requests = state.requests
         {{_command, sender, ref}, requests} = Map.pop(requests, transaction_id)
         state = Map.put(state, :requests, requests)

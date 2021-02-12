@@ -2,7 +2,7 @@ defmodule Janus.Stream do
     use GenServer
     require Logger
 
-    def child_spec(id, participant_id, room_id, web_socket, handle_id, type \\ :publisher) do
+    def child_spec(id, participant_id, room_id, web_socket, handle_id, type \\ :publisher, subscribed_to \\ nil) do
         %{
             id: id,
             start: {__MODULE__, :start_link, [%{stream_id: id,
@@ -11,6 +11,7 @@ defmodule Janus.Stream do
             web_socket: web_socket,
             handle_id: handle_id,
             playing_streams: %{},
+            subscribed_to: subscribed_to,
             type: type}]},
             type: :worker,
             restart: :transient,
@@ -24,39 +25,34 @@ defmodule Janus.Stream do
 
     def init(state) do
         "stream##{state.stream_id} started for #{state.participant_id} as #{state.type} in #{state.room_id}" |> Logger.info
+        "subscribed_to #{state.subscribed_to |> inspect }" |> Logger.info
         {:ok, state, 50000}
     end
 
-    def handle_call({:create_answer, id, sdp}, _from, state) do
+    def handle_call({:create_answer, _id, sdp}, _from, state) do
         handle_id = state.handle_id
         existing_rooms = Janus.RoomManager.list_rooms(handle_id)
 
 
-        room_id = Janus.RoomManager.create_room(state.room_id, existing_rooms, handle_id)
+        room_id = room_manager().create_room(state.room_id, existing_rooms, handle_id)
 
-        Janus.RoomManager.join_room(room_id, state.participant_id, handle_id)
+        room_manager().join_room(room_id, state.participant_id, handle_id)
 
-        publish_result = Janus.Dispatcher.send_message(Janus.Messages.publish_message(handle_id, sdp))
+        publish_result = dispatcher().send_message(Janus.Messages.publish_message(handle_id, sdp))
         {:reply, {:ok, publish_result.jsep["sdp"], publish_result.jsep["type"], room_id}, state}
     end
 
     def handle_call({:create_offer, plugin}, _from, state) do
         message = Janus.Messages.join_message(plugin.room_id, plugin.participant_id, plugin.handle_id)
-        %{jsep: jsep} = Janus.Dispatcher.send_message(message)
+        %{jsep: jsep} = dispatcher().send_message(message)
         {:reply, {jsep["type"], jsep["sdp"]}, state}
     end
 
-    def handle_call({:set_remote_description, sdp, sdp_type, participant}, from, state) do
+    def handle_call({:set_remote_description, sdp, sdp_type, participant}, _from, state) do
         "sending start for #{participant.subscribing_plugin.handle_id}/#{state.stream_id} -> #{participant.id}" |> Logger.info
-        Janus.Dispatcher.send_message(Janus.Messages.start_message(sdp, sdp_type, participant.subscribing_plugin.handle_id))
+        dispatcher().send_message(Janus.Messages.start_message(sdp, sdp_type, participant.subscribing_plugin.handle_id))
         "start for #{state.handle_id}/#{state.stream_id} -> #{state.participant_id} sent" |> Logger.info
         {:reply, :ok, state}
-    end
-
-    def handle_info(:destroy, state) do
-        Janus.Dispatcher.send_message(Janus.Messages.leave_message(state.handle_id))
-        Logger.info("destroying stream #{state.stream_id} for participant #{state.participant_id}")
-        {:stop, :normal, state}
     end
 
     def handle_call(:get_data, _from, state) do
@@ -68,7 +64,6 @@ defmodule Janus.Stream do
     end
 
     def handle_call({:get_data_via_key, key}, _from, state) do
-        Map.has_key?(state, key) |> Logger.info
         {:reply, state |> Map.fetch!(key), state}
     end
 
@@ -87,8 +82,18 @@ defmodule Janus.Stream do
     end
 
     def handle_call({:add_candidate, sdp_mline_index, sdp_mid, candidate}, _from, state) do
-        Janus.Dispatcher.send_message(Janus.Messages.trickle_message(sdp_mid, sdp_mline_index, candidate))
+        dispatcher().send_message(Janus.Messages.trickle_message(sdp_mid, sdp_mline_index, candidate))
         {:reply, :ok, state}
+    end
+
+    def handle_call(:get_publishing_stream, _from, state) do
+        {:reply, state[:subscribed_to], state}
+    end
+
+    def handle_info(:destroy, state) do
+        dispatcher().send_message(Janus.Messages.leave_message(state.handle_id))
+        Logger.info("destroying stream #{state.stream_id} for participant #{state.participant_id}")
+        {:stop, :normal, state}
     end
 
     defp via_tuple(id) do
@@ -115,6 +120,14 @@ defmodule Janus.Stream do
         GenServer.call(via_tuple(id), :get_self)
     end
 
+    def get_publishing_stream(stream) when is_pid(stream) do
+        GenServer.call(stream, :get_publishing_stream)
+    end
+
+    def get_publishing_stream(id) do
+        GenServer.call(via_tuple(id), :get_publishing_stream)
+    end
+
     def get_room_id(stream) do
         GenServer.call(stream, {:get_data_via_key, :room_id})
     end
@@ -131,8 +144,12 @@ defmodule Janus.Stream do
         GenServer.call(via_tuple(stream_id), {:get_data_via_key, :participant_id})
     end
 
-    def get_socket(stream) do
+    def get_socket(stream) when is_pid(stream) do
         GenServer.call(stream, {:get_data_via_key, :web_socket})
+    end
+
+    def get_socket(id) do
+       GenServer.call(via_tuple(id), {:get_data_via_key, :web_socket})
     end
 
     def get_type(stream) do
@@ -169,5 +186,13 @@ defmodule Janus.Stream do
 
     def add_candidate(id, sdp_mline_index, sdp_mid, candidate) do
         GenServer.call(via_tuple(id), {:add_candidate, sdp_mline_index, sdp_mid, candidate})
+    end
+
+    defp dispatcher do
+        Application.fetch_env!(:janus, :dispatcher)
+    end
+
+    defp room_manager do
+        Application.fetch_env!(:janus, :room_manager)
     end
 end

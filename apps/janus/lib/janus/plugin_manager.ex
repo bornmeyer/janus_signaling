@@ -31,4 +31,8 @@ defmodule Janus.PluginManager do
   def update_plugin(participant_id, plugin) do
     Agent.update(__MODULE__, fn map -> map |> Map.put(participant_id, plugin) end)
   end
+
+  def delete_plugins_for(participant_id) do
+    Agent.update(__MODULE__, fn map -> map |> Map.drop([participant_id]) end)
+  end
 end
