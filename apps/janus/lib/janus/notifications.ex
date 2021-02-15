@@ -5,7 +5,7 @@ defmodule Janus.Notifications do
       command: "notification",
       type: "joinedRoom",
       streams: streams,
-      "participantId": participant_id
+      participantId: participant_id
     }
   end
 
@@ -14,7 +14,7 @@ defmodule Janus.Notifications do
       method: "startedPublishing",
       params: %{
           streamId: stream,
-          "participantId": participant_id
+          participantId: participant_id
       }
     }
   end
@@ -23,7 +23,7 @@ defmodule Janus.Notifications do
     %{
         method: "notification",
         params: %{
-          "participantId": participant_id,
+          participantId: participant_id,
           streamId: stream_id
         }
     }

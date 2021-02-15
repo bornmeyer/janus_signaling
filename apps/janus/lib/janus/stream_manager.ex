@@ -32,6 +32,6 @@ defmodule Janus.StreamManager do
         |> Enum.filter(fn x -> Janus.Stream.publisher?(x) end)
         |> Enum.filter(fn x -> Janus.Stream.get_room_id(x) == room_id end)
         |> Enum.map(fn x -> Janus.Stream.get_participant_id(x) end)
-        |> Enum.map(fn x -> %{"participantId": x, streams: x |> Janus.StreamManager.get_streams_for |> Enum.map(fn y -> Janus.Stream.get_stream_id(y) end)} end)
+        |> Enum.map(fn x -> %{participantId: x, streams: x |> Janus.StreamManager.get_streams_for |> Enum.map(fn y -> Janus.Stream.get_stream_id(y) end)} end)
     end
 end

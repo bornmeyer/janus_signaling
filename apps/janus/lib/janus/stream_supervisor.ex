@@ -1,6 +1,5 @@
 defmodule Janus.StreamSupervisor do
     use DynamicSupervisor
-    alias Janus.Stream
     require Logger
 
     def start_link(_args) do
