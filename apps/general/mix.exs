@@ -18,7 +18,7 @@ defmodule General.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger, :websockex],
+      extra_applications: [:logger, :websockex, :iex],
       mod: {General.Application, []}
     ]
   end

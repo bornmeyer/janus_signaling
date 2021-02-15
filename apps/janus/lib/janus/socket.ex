@@ -5,11 +5,9 @@ defmodule Janus.Socket do
     def child_spec(url) do
         %{
             id: __MODULE__,
-            start: {__MODULE__, :start_link, [url]},
+            start: {__MODULE__, :start_link, url},
             type: :worker,
-            restart: :transient,
-            shutdown: 500
-
+            restart: :permanent
         }
     end
 
@@ -23,11 +21,12 @@ defmodule Janus.Socket do
             {"Sec-WebSocket-Protocol", "janus-protocol",}
         ]
         WebSockex.start_link(url, __MODULE__, state,
-            extra_headers: extra_headers, name: __MODULE__, handle_initial_conn_failure: true)#, debug: [:trace])
+            extra_headers: extra_headers, name: __MODULE__, handle_initial_conn_failure: false, async: true)#, debug: [:trace])
     end
 
     def handle_connect(conn, state) do
         Logger.info("connected to #{conn.host}:#{conn.port}")
+        Janus.DispatcherSetup.setup()
         {:ok, state}
     end
 
@@ -88,11 +87,13 @@ defmodule Janus.Socket do
 
     def handle_disconnect(%{reason: {:local, reason}}, state) do
         Logger.info("Local close with reason: #{inspect reason}")
-        {:error, state}
+        {:ok, state}
     end
 
-    def terminate(_reason, _req, _state) do
-        :normal
+    def handle_disconnect(disconnect_map, state) do
+        disconnect_map |> inspect |> Logger.info
+        #super(disconnect_map, state)
+        {:ok, state}
     end
 
     def send(message, sender, ref, transaction_id) do

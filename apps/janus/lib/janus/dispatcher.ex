@@ -8,7 +8,7 @@ defmodule Janus.Dispatcher do
             id: __MODULE__,
             start: {__MODULE__, :start_link, [url]},
             type: :worker,
-            restart: :transient,
+            restart: :permanent,
             shutdown: 500
         }
     end

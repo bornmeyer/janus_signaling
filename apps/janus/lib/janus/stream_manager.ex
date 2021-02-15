@@ -6,13 +6,14 @@ defmodule Janus.StreamManager do
         Agent.start_link(fn -> %{} end, name: __MODULE__)
     end
 
-    def add_stream(participant_id, stream) do
+    def add_stream(stream, participant_id) do
         streams = Agent.get(__MODULE__, fn map -> map |> Map.fetch(participant_id) end)
         {:ok, list} = case streams do
             :error -> {:ok, []}
             contents -> contents
         end
         Agent.update(__MODULE__, fn map -> Map.put(map, participant_id, [stream | list]) end)
+        stream
     end
 
     def get_streams_for(participant_id) do

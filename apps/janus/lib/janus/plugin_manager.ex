@@ -13,7 +13,7 @@ defmodule Janus.PluginManager do
     {:ok, plugin}
   end
 
-  def add_stream(participant_id, stream) do
+  def add_stream(stream, participant_id) do
     {:ok, plugin} = Agent.get(__MODULE__, fn map -> map |> Map.fetch(participant_id) end)
     plugin = case Janus.Stream.get_type(stream) do
       :publisher -> %{plugin | publishing_stream: stream}

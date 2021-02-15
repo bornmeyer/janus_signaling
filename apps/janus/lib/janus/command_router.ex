@@ -9,7 +9,6 @@ defmodule Janus.CommandRouter do
                 :participants => allready_connected_participants
             }
         }
-        response |> inspect |> Logger.info
         General.SocketHandler.push(web_socket, response)
     end
 
@@ -46,8 +45,7 @@ defmodule Janus.CommandRouter do
     end
 
     def route(%{"method" => "addIceCandidate", "params" => %{"streamdId" => stream_id, "sdpMLineIndex" => sdp_m_line_index,
-     "sdpMid" => sdp_mid, "candidate" => candidate}} = command, _state, _web_socket) do
-        command |> inspect |> Logger.info
+     "sdpMid" => sdp_mid, "candidate" => candidate}}, _state, _web_socket) do
         Janus.Stream.add_candidate(stream_id, sdp_m_line_index, sdp_mid, candidate)
     end
 
@@ -57,9 +55,9 @@ defmodule Janus.CommandRouter do
         {:ok, plugin} = Janus.PluginManager.new(state.participant_id, state.room_id, :subscriber)
         participant = %{state.participant | subscribing_plugin: plugin }
         publishing_stream = Janus.Stream.get(stream_id)
-        stream = Janus.StreamSupervisor.start_child(id, participant.id, plugin.room_id, web_socket, plugin.handle_id, :subscriber, publishing_stream)
-        Janus.StreamManager.add_stream(state.participant_id, stream)
-        Janus.PluginManager.add_stream(state.participant_id, stream)
+        Janus.StreamSupervisor.start_child(id, participant.id, plugin.room_id, web_socket, plugin.handle_id, :subscriber, publishing_stream)
+        |> Janus.StreamManager.add_stream(state.participant_id)
+        |> Janus.PluginManager.add_stream(state.participant_id)
         state = Map.put(state, :stream_ids, [id | state.stream_ids]) |> Map.put(:participant, participant)
         {type, sdp} = Janus.Stream.create_offer(id, plugin)
         response = Janus.ResponseCreator.create_response(command, request_id, stream_id, sdp: sdp, type: type)
@@ -78,6 +76,7 @@ defmodule Janus.CommandRouter do
         command |> inspect |> Logger.info
     end
 
+    @spec destroy(atom | %{:participant_id => any, optional(any) => any}) :: :ok
     def destroy(state) do
         participant_id = state.participant_id
         streams = Janus.StreamManager.get_streams_for(participant_id)
