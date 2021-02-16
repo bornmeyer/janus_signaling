@@ -15,7 +15,6 @@ defmodule Janus.SocketSupervisor do
       Janus.DispatcherSetup
     ]
 
-    result = Supervisor.init(children, strategy: :one_for_all)
-    result
+    Supervisor.init(children, strategy: :one_for_all)
   end
 end

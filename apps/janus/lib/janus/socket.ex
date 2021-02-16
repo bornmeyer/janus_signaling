@@ -92,8 +92,8 @@ defmodule Janus.Socket do
 
     def handle_disconnect(disconnect_map, state) do
         disconnect_map |> inspect |> Logger.info
-        #super(disconnect_map, state)
-        {:ok, state}
+        super(disconnect_map, state)
+        #{:ok, state}
     end
 
     def send(message, sender, ref, transaction_id) do
