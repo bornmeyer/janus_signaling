@@ -26,7 +26,7 @@ defmodule Janus.Stream do
     def init(state) do
         "stream##{state.stream_id} started for #{state.participant_id} as #{state.type} in #{state.room_id}" |> Logger.info
         "subscribed_to #{state.subscribed_to |> inspect }" |> Logger.info
-        {:ok, state, 50000}
+        {:ok, state}
     end
 
     def handle_call({:create_answer, _id, sdp}, _from, state) do

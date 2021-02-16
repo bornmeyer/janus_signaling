@@ -18,7 +18,7 @@ defmodule General.SocketHandler do
         |> Registry.register(state.registry_key, {})
 
         protocol = CallProtocol.get_module(%CallProtocol.Janus{})
-        protocol.route(:after_connect, state, self())
+        protocol.route(%{"method" => :after_connect}, state, self())
         {:ok, state}
     end
 
@@ -34,10 +34,8 @@ defmodule General.SocketHandler do
     end
 
     def websocket_info(message, state) do
-
        {:reply, {:text, message}, state}
     end
-
 
     def terminate(reason, _req, state) do
         "termination due to #{reason |> inspect}" |> Logger.info

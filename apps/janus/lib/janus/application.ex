@@ -6,11 +6,14 @@ defmodule Janus.Application do
     port = Application.get_env(:general, :port) || 8188
     url = "ws://#{ip}:#{port}"
     children = [
-      #Janus.Dispatcher.child_spec(url),
-      #Janus.Socket.child_spec(url),
-
+      {
+        Janus.SocketSupervisor, [url]
+      },
       {
         Janus.StreamSupervisor, []
+      },
+      {
+        Janus.StreamStateGuardSupervisor, []
       },
       Janus.StreamManager,
       Janus.PluginManager,
@@ -19,13 +22,12 @@ defmodule Janus.Application do
         Registry, [keys: :unique, name: :stream_registry]
       },
       {
-        Janus.SocketSupervisor, [url]
-      },
+        Registry, [keys: :unique, name: :stream_state_guard_registry]
+      }
     ]
 
-    opts = [strategy: :one_for_all, name: Janus.Supervisor]
-    result = Supervisor.start_link(children, opts)
-    result
+    opts = [strategy: :one_for_one, name: Janus.Supervisor]
+    Supervisor.start_link(children, opts)
   end
 
 

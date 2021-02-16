@@ -8,8 +8,7 @@ defmodule Janus.Dispatcher do
             id: __MODULE__,
             start: {__MODULE__, :start_link, [url]},
             type: :worker,
-            restart: :permanent,
-            shutdown: 500
+            restart: :permanent
         }
     end
 
@@ -33,7 +32,6 @@ defmodule Janus.Dispatcher do
         |> Janus.Socket.send(self(), ref, transaction_id)
         requests = Map.put(requests, ref, from)
         state = Map.put(state, :requests, requests)
-
         {:noreply, state}
     end
 
@@ -96,7 +94,7 @@ defmodule Janus.Dispatcher do
     def handle_info({:keep_alive, session_id}, state) do
         message = Janus.Messages.create_keep_alive_message(session_id) |> Map.put(:transaction, Janus.Utilities.generate_random_string())
         Janus.Socket.send_keepalive(message)
-        Janus.Dispatcher.queue_keep_alive(session_id)
+        Janus.KeepAlivePulse.queue_keep_alive(session_id)
         {:noreply, state}
     end
 
@@ -106,10 +104,6 @@ defmodule Janus.Dispatcher do
 
     def send_message(message) do
         GenServer.call(__MODULE__, {:send, message})
-    end
-
-    def queue_keep_alive(session_id, interval \\ 15) do
-        Process.send_after(__MODULE__, {:keep_alive, session_id}, interval * 1000)
     end
 
     def set_data(key, value) do

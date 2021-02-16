@@ -1,24 +1,34 @@
 defmodule Janus.DispatcherSetup do
   use GenServer
+  require Logger
 
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+  def child_spec do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, []},
+      type: :worker,
+      restart: :permanent
+    }
   end
 
-  def init(args) do
-    {:ok, args}
+  def start_link do
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  def handle_call(:setup, _from, state) do
+  def init(state) do
+    {:ok, state}
+  end
+
+  def handle_cast(:setup, state) do
     %{"data" => %{"id" => session_id}, "janus" => "success"} = Janus.Dispatcher.send_message(Janus.Messages.create_session_message)
     Janus.Dispatcher.set_data(:remote_session_id, session_id)
     %{"data" => %{"id" => handle_id}, "janus" => "success"} = Janus.Dispatcher.send_message(Janus.Messages.create_attach_message(session_id))
     Janus.Dispatcher.set_data(:handle_id, handle_id)
-    Janus.Dispatcher.queue_keep_alive(session_id)
-    {:reply, :ok, state}
+    Janus.KeepAlivePulse.queue_keep_alive(session_id)
+    {:noreply, state}
   end
 
   def setup do
-    GenServer.call(__MODULE__, :setup)
+    GenServer.cast(__MODULE__, :setup)
   end
 end

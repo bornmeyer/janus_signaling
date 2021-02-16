@@ -1,6 +1,5 @@
 defmodule Janus.SocketSupervisor do
   use Supervisor
-  require Logger
 
   def start_link(url) do
     Supervisor.start_link(__MODULE__, url, name: __MODULE__)
@@ -8,13 +7,12 @@ defmodule Janus.SocketSupervisor do
 
   @impl true
   def init(url) do
-    url |> Logger.info
     children = [
-      Janus.Socket.child_spec(url),
+      Janus.KeepAlivePulse.child_spec(),
+      Janus.DispatcherSetup.child_spec(),
       Janus.Dispatcher.child_spec(url),
-      Janus.DispatcherSetup
+      Janus.Socket.child_spec(url),
     ]
-
     Supervisor.init(children, strategy: :one_for_all)
   end
 end
