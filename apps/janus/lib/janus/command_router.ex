@@ -14,7 +14,8 @@ defmodule Janus.CommandRouter do
 
     defp route_internal(%{"method" => "publish"} = command, state, web_socket) do
         id = UUID.uuid4()
-        Janus.StreamStateGuardSupervisor.start_child(id)
+        {:ok, plugin} = Janus.PluginManager.new(state.participant_id, state.room_id)
+        Janus.StreamSupervisor.start_child(id, state.participant_id, state.room_id, web_socket, plugin.handle_id)
         Janus.StreamStateGuard.advance_stream(id, command, state, web_socket, stream_id: id)
     end
 

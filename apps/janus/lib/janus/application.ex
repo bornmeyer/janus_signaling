@@ -12,9 +12,6 @@ defmodule Janus.Application do
       {
         Janus.StreamSupervisor, []
       },
-      {
-        Janus.StreamStateGuardSupervisor, []
-      },
       Janus.StreamManager,
       Janus.PluginManager,
       Janus.RoomManager.child_spec(),
@@ -23,6 +20,9 @@ defmodule Janus.Application do
       },
       {
         Registry, [keys: :unique, name: :stream_state_guard_registry]
+      },
+      {
+        Registry, [keys: :unique, name: :stream_infrastructure_registry]
       }
     ]
 

@@ -4,7 +4,7 @@ defmodule Janus.StreamStateGuard do
 
   def child_spec(stream_id) do
     %{
-      id: stream_id,
+      id: "#{stream_id}_guard",
       start: {__MODULE__, :start_link, [%{stream_id: stream_id}]},
       type: :worker,
       restart: :transient,
@@ -16,9 +16,8 @@ defmodule Janus.StreamStateGuard do
     GenStateMachine.start_link(__MODULE__, {:publish, state}, name: via_tuple(state.stream_id))
   end
 
-  def handle_event({:call, from}, {:advance_stream, command, state, web_socket, [stream_id: stream_id]}, :publish, data) do
-    {:ok, plugin} = Janus.PluginManager.new(state.participant_id, state.room_id)
-    stream = Janus.StreamSupervisor.start_child(stream_id, state.participant_id, state.room_id, web_socket, plugin.handle_id)
+  def handle_event({:call, from}, {:advance_stream, command, state, _web_socket, [stream_id: stream_id]}, :publish, data) do
+    stream = Janus.Stream.get(stream_id)
     Janus.StreamManager.add_stream(stream, state.participant_id)
     {:ok, plugin} = Janus.PluginManager.add_stream(stream, state.participant_id)
     participant = %Janus.Participant{id: state.participant_id, publishing_plugin: plugin}
@@ -27,7 +26,6 @@ defmodule Janus.StreamStateGuard do
   end
 
   def handle_event({:call, from}, {:advance_stream, command, state, _web_socket, [sdp: sdp]}, :start_publish, data) do
-    data |> inspect |> Logger.info
     {:ok, sdp, _type, room_id} = Janus.Stream.create_answer(data[:stream_id], sdp)
     plugin = Janus.PluginManager.get_plugin(state.participant_id)
     plugin = %{plugin | room_id: room_id}
@@ -51,7 +49,7 @@ defmodule Janus.StreamStateGuard do
     {:next_state, :start_play, data, [{:reply, from, {state, response}}]}
   end
 
-  def handle_event({:call, from}, {:advance_stream, command, state, web_socket, [stream_id: stream_id, sdp: sdp]}, :start_play, data) do
+  def handle_event({:call, from}, {:advance_stream, command, state, _web_socket, [stream_id: stream_id, sdp: sdp]}, :start_play, _data) do
     Janus.Stream.set_remote_description(stream_id, sdp, "answer", state.participant)
 
     web_socket = Janus.Stream.get_socket(stream_id)
@@ -60,7 +58,7 @@ defmodule Janus.StreamStateGuard do
   end
 
   defp via_tuple(id) do
-    {:via, Registry, {:stream_state_guard_registry, id}}
+    {:via, Registry, {:stream_state_guard_registry, "#{id}_guard"}}
   end
 
   def advance_stream(stream_id, command, state, web_socket, additional_args \\ []) do

@@ -11,7 +11,16 @@ defmodule Janus.StreamSupervisor do
     end
 
     def start_child(stream_id, participant_id, room_id, web_socket, handle_id, type \\ :publisher, subscribed_to \\ nil) do
-        child_spec = Janus.Stream.child_spec(stream_id, participant_id, room_id, web_socket, handle_id, type, subscribed_to)
+        args = %{
+            id: stream_id,
+            participant_id: participant_id,
+            room_id: room_id,
+            web_socket: web_socket,
+            handle_id: handle_id,
+            type: type,
+            subscribed_to: subscribed_to
+        }
+        child_spec = Janus.StreamInfrastructureSupervisor.child_spec(args)
         {:ok, pid} = DynamicSupervisor.start_child(__MODULE__, child_spec)
         pid
     end
