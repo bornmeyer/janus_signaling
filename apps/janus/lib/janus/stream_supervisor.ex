@@ -24,4 +24,14 @@ defmodule Janus.StreamSupervisor do
         {:ok, pid} = DynamicSupervisor.start_child(__MODULE__, child_spec)
         pid
     end
+
+    def get_all_streams do
+        DynamicSupervisor.which_children(__MODULE__)
+        |> Enum.map(fn {_, x, _, _} -> Janus.StreamInfrastructureSupervisor.get_stream(x) end)
+    end
+
+    def get_all_stream_guards do
+        DynamicSupervisor.which_children(__MODULE__)
+        |> Enum.map(fn {_, x, _, _} -> Janus.StreamInfrastructureSupervisor.get_stream_guard(x) end)
+    end
 end

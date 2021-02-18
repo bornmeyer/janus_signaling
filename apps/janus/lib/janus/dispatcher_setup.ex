@@ -20,12 +20,21 @@ defmodule Janus.DispatcherSetup do
   end
 
   def handle_cast(:setup, state) do
-    %{"data" => %{"id" => session_id}, "janus" => "success"} = Janus.Dispatcher.send_message(Janus.Messages.create_session_message)
-    Janus.Dispatcher.set_data(:remote_session_id, session_id)
-    %{"data" => %{"id" => handle_id}, "janus" => "success"} = Janus.Dispatcher.send_message(Janus.Messages.create_attach_message(session_id))
-    Janus.Dispatcher.set_data(:handle_id, handle_id)
-    Janus.KeepAlivePulse.queue_keep_alive(session_id)
+    Janus.Messages.create_session_message
+    |> Janus.Dispatcher.send_message
+    |> set_data(:remote_session_id)
+    |> Janus.Messages.create_attach_message
+    |> Janus.Dispatcher.send_message
+    |> set_data(:handle_id)
+
+    Janus.Dispatcher.get_data(:remote_session_id)
+    |> Janus.KeepAlivePulse.queue_keep_alive
     {:noreply, state}
+  end
+
+  defp set_data(%{"data" => %{"id" => data}, "janus" => "success"}, key) do
+    Janus.Dispatcher.set_data(key, data)
+    data
   end
 
   def setup do

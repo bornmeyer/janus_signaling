@@ -90,10 +90,19 @@ defmodule Janus.Stream do
         {:reply, state[:subscribed_to], state}
     end
 
-    def handle_info(:destroy, state) do
+    def handle_info({:destroy, plugin}, state) do
         dispatcher().send_message(Janus.Messages.leave_message(state.handle_id))
         Logger.info("destroying stream #{state.stream_id} for participant #{state.participant_id}")
-        {:stop, :normal, state}
+        state.playing_streams |> inspect |> Logger.info
+        case state.type do
+            :publisher -> kill_subscriber_streams(plugin)
+            :subscriber -> nil
+        end
+        {:stop, :fuck, state}
+    end
+
+    defp kill_subscriber_streams(plugin) do
+        plugin |> inspect |> Logger.info
     end
 
     defp via_tuple(id) do
@@ -108,8 +117,8 @@ defmodule Janus.Stream do
         GenServer.call(via_tuple(publishing_stream_id), {:create_offer, plugin})
     end
 
-    def destroy(stream) do
-        send(stream, :destroy)
+    def destroy(stream, plugin) do
+        send(stream, {:destroy, plugin})
     end
 
     def get_data(id) do

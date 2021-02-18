@@ -21,6 +21,12 @@ defmodule Janus.StreamManager do
         result
     end
 
+    def get_all_streams() do
+        {:ok, result} = Agent.get(__MODULE__, fn map -> Map.values(map) end)
+        result |> inspect |> Logger.info
+        result |> List.flatten
+    end
+
     def remove_all_streams_for(participant_id) do
         "removing streams for #{participant_id}" |> Logger.info
         Agent.update(__MODULE__, fn map -> map |> Map.delete(participant_id) end)

@@ -6,25 +6,20 @@ defmodule Janus.StreamInfrastructureSupervisor do
       id: args[:id],
       start: {__MODULE__, :start_link, [args]},
       type: :supervisor,
-      restart: :transient,
-      shutdown: 500
+      restart: :temporary
     }
   end
 
   def start_link(args) do
-    Supervisor.start_link(__MODULE__, args, name: via_tuple(args[:id]))
+    Supervisor.start_link(__MODULE__, args)
   end
 
   def init(args) do
     children = [
+      Janus.Stream.child_spec(args[:id], args[:participant_id], args[:room_id], args[:web_socket], args[:handle_id], args[:type], args[:subscribed_to]),
       Janus.StreamStateGuard.child_spec(args[:id]),
-      Janus.Stream.child_spec(args[:id], args[:participant_id], args[:room_id], args[:web_socket], args[:handle_id], args[:type], args[:subscribed_to])
     ]
-    Supervisor.init(children, strategy: :one_for_all, max_restarts: 0)
-  end
-
-  defp via_tuple(id) do
-    {:via, Registry, {:stream_infrastructure_registry, id}}
+    Supervisor.init(children, strategy: :one_for_all, max_restarts: 0, max_seconds: 1)
   end
 
   def get_stream(pid) do

@@ -54,10 +54,14 @@ defmodule Janus.CommandRouter do
     def destroy(state) do
         participant_id = state.participant_id
         streams = Janus.StreamManager.get_streams_for(participant_id)
+        plugin = Janus.PluginManager.get_plugin(participant_id)
         for stream <- streams do
-            Janus.Stream.destroy(stream)
+            "terminating #{stream |> inspect}(#{Janus.Stream.get_type(stream)})" |> Logger.info
+            Janus.Stream.destroy(stream, plugin)
         end
         Janus.StreamManager.remove_all_streams_for(participant_id)
         Janus.PluginManager.delete_plugins_for(participant_id)
     end
+
+
 end

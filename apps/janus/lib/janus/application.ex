@@ -7,6 +7,15 @@ defmodule Janus.Application do
     url = "ws://#{ip}:#{port}"
     children = [
       {
+        Registry, [keys: :unique, name: :stream_registry]
+      },
+      {
+        Registry, [keys: :unique, name: :stream_state_guard_registry]
+      },
+      {
+        Registry, [keys: :unique, name: :stream_infrastructure_registry]
+      },
+      {
         Janus.SocketSupervisor, [url]
       },
       {
@@ -15,15 +24,7 @@ defmodule Janus.Application do
       Janus.StreamManager,
       Janus.PluginManager,
       Janus.RoomManager.child_spec(),
-      {
-        Registry, [keys: :unique, name: :stream_registry]
-      },
-      {
-        Registry, [keys: :unique, name: :stream_state_guard_registry]
-      },
-      {
-        Registry, [keys: :unique, name: :stream_infrastructure_registry]
-      }
+
     ]
 
     opts = [strategy: :one_for_one, name: Janus.Supervisor]
