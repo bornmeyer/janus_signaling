@@ -37,8 +37,8 @@ defmodule Janus.Stream do
         room_id = room_manager().create_room(state.room_id, existing_rooms, handle_id)
 
         room_manager().join_room(room_id, state.participant_id, handle_id)
-
-        publish_result = dispatcher().send_message(Janus.Messages.publish_message(handle_id, sdp))
+        publish_message = Janus.Messages.publish_message(handle_id, sdp)
+        publish_result = dispatcher().send_message(publish_message)
         {:reply, {:ok, publish_result.jsep["sdp"], publish_result.jsep["type"], room_id}, state}
     end
 
@@ -90,18 +90,25 @@ defmodule Janus.Stream do
         {:reply, state[:subscribed_to], state}
     end
 
+    def handle_call(:leave, _from, state) do
+        dispatcher().send_message(Janus.Messages.leave_message(state.handle_id))
+        {:reply, :ok, state}
+    end
+
     def handle_info({:destroy, plugin}, state) do
         dispatcher().send_message(Janus.Messages.leave_message(state.handle_id))
         Logger.info("destroying stream #{state.stream_id} for participant #{state.participant_id}")
         state.playing_streams |> inspect |> Logger.info
         case state.type do
-            :publisher -> kill_subscriber_streams(plugin)
+            :publisher -> further_cleanup(plugin, state)
             :subscriber -> nil
         end
-        {:stop, :fuck, state}
+        {:stop, :client_disconnect, state}
     end
 
-    defp kill_subscriber_streams(plugin) do
+    defp further_cleanup(plugin, state) do
+        #Janus.Messages.unpublish_message(state.handle_id) |> inspect |> Logger.info
+        #dispatcher().send_message(Janus.Messages.unpublish_message(state.handle_id))
         plugin |> inspect |> Logger.info
     end
 
@@ -195,6 +202,14 @@ defmodule Janus.Stream do
 
     def add_candidate(id, sdp_mline_index, sdp_mid, candidate) do
         GenServer.call(via_tuple(id), {:add_candidate, sdp_mline_index, sdp_mid, candidate})
+    end
+
+    def leave(stream) when is_pid(stream) do
+        GenServer.call(stream, :leave)
+    end
+
+    def leave(stream_id) do
+        GenServer.call(via_tuple(stream_id), :leave)
     end
 
     defp dispatcher do

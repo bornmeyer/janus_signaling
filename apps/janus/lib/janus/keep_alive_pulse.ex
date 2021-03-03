@@ -29,6 +29,7 @@ defmodule Janus.KeepAlivePulse do
 
   def terminate(_reason, %{:timer_refs => timer_refs}) do
     kill_timer_refs(timer_refs)
+    :shutdown
   end
 
   defp kill_timer_refs(timer_refs) do

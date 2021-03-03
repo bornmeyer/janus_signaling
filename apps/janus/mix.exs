@@ -18,7 +18,7 @@ defmodule Janus.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger, :gen_state_machine, :crypto],
+      extra_applications: [:sasl, :logger, :gen_state_machine, :crypto, ],
       mod: {Janus.Application, []}
     ]
   end

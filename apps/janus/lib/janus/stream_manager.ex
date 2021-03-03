@@ -23,7 +23,6 @@ defmodule Janus.StreamManager do
 
     def get_all_streams() do
         {:ok, result} = Agent.get(__MODULE__, fn map -> Map.values(map) end)
-        result |> inspect |> Logger.info
         result |> List.flatten
     end
 

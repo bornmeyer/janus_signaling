@@ -9,7 +9,7 @@ defmodule Janus.Notifications do
     }
   end
 
-  def stream_started_notification(participant_id, stream) do
+  def stream_started_notification(stream, participant_id) do
     %{
       method: "startedPublishing",
       params: %{

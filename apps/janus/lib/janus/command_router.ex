@@ -9,6 +9,7 @@ defmodule Janus.CommandRouter do
                 :participants => allready_connected_participants
             }
         }
+        response |> inspect |> Logger.info
         General.SocketHandler.push(web_socket, response)
     end
 

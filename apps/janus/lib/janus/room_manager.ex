@@ -36,7 +36,6 @@ defmodule Janus.RoomManager do
 
     def handle_call({:join, room_id, participant_id, handle_id}, _from, state) do
         result = dispatcher().send_message(Janus.Messages.join_room_message(room_id, participant_id, handle_id))
-        result |> inspect |> Logger.info
         Janus.EventRouter.handle_event(result)
         {:reply, result, state}
     end

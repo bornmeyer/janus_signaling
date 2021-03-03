@@ -76,9 +76,8 @@ defmodule Janus.Dispatcher do
         {:noreply, state}
     end
 
-    def handle_cast({:response, _ref, %{"janus" => "error", "error" => %{"code" => code, "reason" => reason} = error}}, %{requests: _requests} = state) do
+    def handle_cast({:response, _ref, %{"janus" => "error", "error" => %{"code" => code, "reason" => reason}}}, %{requests: _requests} = state) do
         "Error #{code}: #{reason}" |> Logger.info
-        Janus.DispatcherErrorHandler.handle_error(error)
         {:noreply, state}
     end
 

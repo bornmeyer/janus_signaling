@@ -56,19 +56,20 @@ defmodule Janus.Messages do
         }
     end
 
-    def publish_message(handle_id, sdp, sdp_type \\ "offer") do
+    def publish_message(handle_id, sdp, options \\ []) do
+        processed_options = %{audio: true, video: true, data: true, trickle: true, sdp_type: "offer"} |> Enum.into(options)
         %{
             janus: "message",
             body: %{
                 request: "publish",
-                audio: true,
-                video: true,
-                data: true
+                audio: processed_options |> Keyword.get(:audio),
+                video: processed_options |> Keyword.get(:video),
+                data: processed_options |> Keyword.get(:data)
             },
             jsep: %{
                 sdp: sdp,
-                trickle: true,
-                type: sdp_type
+                trickle: processed_options |> Keyword.get(:trickle),
+                type: processed_options |> Keyword.get(:sdp_type)
             },
             handle_id: handle_id
         }
@@ -133,6 +134,16 @@ defmodule Janus.Messages do
                 sdpMLineIndex: sdp_mline_index,
                 candidate: candidate
             }
+        }
+    end
+
+    def unpublish_message(handle_id) do
+        %{
+            janus: "message",
+            body: %{
+                request: "unpublish"
+            },
+            handle_id: handle_id
         }
     end
 end

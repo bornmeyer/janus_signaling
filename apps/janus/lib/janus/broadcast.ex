@@ -13,8 +13,9 @@ defmodule Janus.Broadcast do
     end
 
     def broadcast_stream_started(participant_id, stream) do
-        streams = Janus.Stream.get_stream_id(stream)
-        message = Janus.Notifications.stream_started_notification(participant_id, streams)
+        message = stream
+        |> Janus.Stream.get_stream_id
+        |> Janus.Notifications.stream_started_notification(participant_id)
         "broadcasting message: #{message |> inspect}" |> Logger.info
         all_streams = Agent.get(Janus.StreamManager, fn map -> map |> Map.values end) |> List.flatten
         broadcast(message, all_streams, fn x -> Janus.Stream.get_participant_id(x) != participant_id && Janus.Stream.publisher?(x) end)

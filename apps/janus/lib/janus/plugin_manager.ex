@@ -20,7 +20,7 @@ defmodule Janus.PluginManager do
       :subscriber -> %{plugin | subscribing_streams: [stream | plugin.subscribing_streams ]}
     end
     Agent.update(__MODULE__, fn map -> map |> Map.put(participant_id, plugin) end)
-    {:ok, plugin}
+    {:ok, plugin, stream}
   end
 
   def get_plugin(participant_id) do

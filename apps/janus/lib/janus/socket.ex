@@ -2,6 +2,8 @@ defmodule Janus.Socket do
     use WebSockex
     require Logger
 
+    @timeout 1000*60*60*24
+
     def child_spec(url) do
         %{
             id: __MODULE__,
@@ -21,7 +23,8 @@ defmodule Janus.Socket do
             {"Sec-WebSocket-Protocol", "janus-protocol",}
         ]
         WebSockex.start_link(url, __MODULE__, state,
-            extra_headers: extra_headers, name: __MODULE__, handle_initial_conn_failure: false, async: true)#, debug: [:trace])
+            extra_headers: extra_headers, name: __MODULE__, handle_initial_conn_failure: false,
+            async: true, socket_recv_timeout: @timeout, socket_connect_timeout: @timeout)#, debug: [:trace])
     end
 
     def handle_connect(conn, state) do
@@ -39,9 +42,9 @@ defmodule Janus.Socket do
     end
 
     def handle_frame({:text, message}, state) do
-        message = message
+        message
         |> Poison.decode!
-        handle_response(message, state)
+        |> handle_response(state)
     end
 
     def handle_response(%{"janus" => "ack"}, state) do
@@ -60,6 +63,11 @@ defmodule Janus.Socket do
     def handle_response(%{"janus" => "error", "error" => error}, state) do
         Janus.SocketErrorHandler.handle_error(error)
         {:ok, state}
+    end
+
+    def handle_response(%{"janus" => "timeout"}, state) do
+        "time_out #{state |> inspect}" |> Logger.info
+        {:stop, :timeout, state}
     end
 
     def handle_response(%{"janus" => "hangup", "reason" => reason}, state) do
