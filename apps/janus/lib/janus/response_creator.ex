@@ -1,6 +1,8 @@
 defmodule Janus.ResponseCreator do
 
-    def create_response(%{"method" => "publish"}, request_id, stream_id, _args \\ []) do
+    def create_response(command, request_id, stream_id, args \\ [])
+
+    def create_response(%{"method" => "publish"}, request_id, stream_id, _args) do
         %{
             id: request_id,
             result: %{

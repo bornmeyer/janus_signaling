@@ -45,13 +45,17 @@ defmodule Janus.StreamStateGuard do
     participant = Janus.Participant.update_plugin(state.participant, plugin, :subscribing_plugin)
     publishing_stream = Janus.Stream.get(data[:stream_id])
     Janus.StreamSupervisor.start_child(subscriber_stream_id, participant.id, plugin.room_id, web_socket, plugin.handle_id, :subscriber, publishing_stream)
-    {:ok, _, _} = Janus.Stream.get(subscriber_stream_id)
-    |> Janus.StreamManager.add_stream(state.participant_id)
-    |> Janus.PluginManager.add_stream(state.participant_id)
+    {:ok, _, _} = subscriber_stream_id |> add_to_managers(state.participant_id)
     state = Map.put(state, :stream_ids, [subscriber_stream_id | state.stream_ids]) |> Map.put(:participant, participant)
     {_, sdp} = Janus.Stream.create_offer(subscriber_stream_id, plugin)
     response = Janus.ResponseCreator.create_response(command, command["id"], data[:stream_id], sdp: sdp)
     {:next_state, :start_play, data, [{:reply, from, {state, response}}]}
+  end
+
+  defp add_to_managers(stream_id, participant_id) do
+    Janus.Stream.get(stream_id)
+    |> Janus.StreamManager.add_stream(participant_id)
+    |> Janus.PluginManager.add_stream(participant_id)
   end
 
   def handle_event({:call, from}, {:advance_stream, _command, state, _web_socket, [stream_id: stream_id, sdp: sdp]}, :start_play, data) do

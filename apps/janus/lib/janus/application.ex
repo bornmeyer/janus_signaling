@@ -16,6 +16,9 @@ defmodule Janus.Application do
         Registry, [keys: :unique, name: :stream_infrastructure_registry]
       },
       {
+        Registry, [keys: :unique, name: :stream_configuration_registry]
+      },
+      {
         Janus.SocketSupervisor, [url]
       },
       {

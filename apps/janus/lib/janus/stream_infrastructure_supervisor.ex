@@ -18,6 +18,7 @@ defmodule Janus.StreamInfrastructureSupervisor do
     children = [
       Janus.Stream.child_spec(args[:id], args[:participant_id], args[:room_id], args[:web_socket], args[:handle_id], args[:type], args[:subscribed_to]),
       Janus.StreamStateGuard.child_spec(args[:id]),
+      Janus.StreamConfiguration.child_spec(args[:id])
     ]
     Supervisor.init(children, strategy: :one_for_all, max_restarts: 0, max_seconds: 1)
   end
@@ -30,5 +31,10 @@ defmodule Janus.StreamInfrastructureSupervisor do
   def get_stream_guard(pid) do
     {_, stream_guard_pid, _, _} = Supervisor.which_children(pid) |> Enum.find(fn {_, _, _, x} -> x == [Janus.StreamStateGuard] end)
     stream_guard_pid
+  end
+
+  def get_stream_configuration(pid) do
+    {_, stream_configuration_pid, _, _} = Supervisor.which_children(pid) |> Enum.find(fn {_, _, _, x} -> x == [Janus.StreamConfiguration] end)
+    stream_configuration_pid
   end
 end
